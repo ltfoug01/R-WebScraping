@@ -5,7 +5,7 @@ library(tidyverse)
 library(rvest) #part of tidyverse
 
 
-#BUILD THE FLIMS TABLE FROM WIKIPEDIA
+#BUILD THE FLIMS TABLE FROM WIKIPEDIA---------------------------------------
 
 # scrape academy award nominees from wikipedia
 aa_films_raw <- read_html("https://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture") %>% 
@@ -21,7 +21,7 @@ aa_films <- do.call(bind_rows, aa_films_raw) %>%
   select(-winner_index)
 
 
-#BUILD THE ROTTEN TOMATOES TABLE
+#BUILD THE ROTTEN TOMATOES TABLE--------------------------------------------
 
 # scrape rotten tomatoes info for each film - empty df the size of aa_films
 rotten_tomatoes_scores <- data.frame(tomatometer = rep(NA, length(aa_films$Film)), 
