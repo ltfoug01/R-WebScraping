@@ -1,11 +1,11 @@
-# Webscraping and Databases in R
+# WEBSCRAPING AND DATABASES IN R
 
-# Webscraping -------------------------------------------------------------
 library(tidyverse)
 library(rvest) #part of tidyverse
 
 
-#BUILD THE FLIMS TABLE FROM WIKIPEDIA---------------------------------------
+#BUILD THE FLIMS TABLE FROM WIKIPEDIA------------------------------------------
+
 
 # scrape academy award nominees from wikipedia
 aa_films_raw <- read_html("https://en.wikipedia.org/wiki/Academy_Award_for_Best_Picture") %>% 
@@ -17,53 +17,57 @@ aa_films <- do.call(bind_rows, aa_films_raw) %>%
   mutate(Year = str_extract(Year, "^\\d{4}")) %>%   #get the year - first 4 digits
   group_by(Year) %>% 
   mutate(winner_index = rank(row_number()),
-         winner = ifelse(winner_index == min(winner_index), 1, 0)) %>% #shows the winners from each year
+         Winner = ifelse(winner_index == min(winner_index), 1, 0)) %>% #shows the winners from each year
   select(-winner_index)
 
 
-#BUILD THE ROTTEN TOMATOES TABLE--------------------------------------------
+#BUILD THE ROTTEN TOMATOES TABLE-----------------------------------------------
 
 # scrape rotten tomatoes info for each film - empty df the size of aa_films
-rotten_tomatoes_scores <- data.frame(tomatometer = rep(NA, length(aa_films$Film)), 
-                                     audience_score = rep(NA, length(aa_films$Film)))
+rotten_tomatoes_scores <- data.frame(Tomatometer = rep(NA, length(aa_films$Film)), 
+                                     Audience_score = rep(NA, length(aa_films$Film)))
 
 for(i in seq_along(aa_films$Film)){
   
-  # handle errors and continue looping - some urls might cause an error
+  # handle errors and continue looping - some URLs might cause an error
   tryCatch({
     
     #Example: https://www.rottentomatoes.com/m/joker_2019
-    # for each film title, convert to rotten tomatoes url suffix format
+    # for each film title, convert to rotten tomatoes URL suffix format
     #to lowercase and replace space with underscore(_)
     film_url_suffix <- tolower(str_replace_all(aa_films$Film[i], "\\s", "_"))
     
-    # build url
+    # build the URL
     rt_url <- paste0("https://www.rottentomatoes.com/m/", film_url_suffix)
     
-    # null page contents object
+    # NULL page contents object
     page <- NULL
     
-    # scrape page info for url
+    # scrape page info for URL
     page <- read_html(rt_url)
     
     # if page is null then create missing values
     if(is.null(page)){
-      rotten_tomatoes_scores$tomatometer[i] <- NA
-      rotten_tomatoes_scores$audience_score[i] <- NA
+      rotten_tomatoes_scores$Tomatometer[i] <- NA
+      rotten_tomatoes_scores$Audience_score[i] <- NA
       
       # if page was scrape successfully, then extract the ratings info     
     } else {
       
-      ratings <- page %>% 
-        html_nodes(".mop-ratings-wrap__percentage") %>% #rating in the source code
-        html_text() %>%      #turn into text value
-        str_extract("\\d+")  #extract the digits from text
+      ratings1 <- page %>% 
+        html_nodes(".scoreboard") %>%  #scoreboard node
+        html_attr('tomatometerscore')  #tomato score attribute
       
-      rotten_tomatoes_scores$tomatometer[i] <- ratings[1]
-      rotten_tomatoes_scores$audience_score[i] <- ratings[2]
+      ratings2 <- page %>% 
+        html_nodes(".scoreboard") %>%  #scoreboard node
+        html_attr('audiencescore')     #audience score attribute
+      
+      rotten_tomatoes_scores$Tomatometer[i] <- ratings1
+      rotten_tomatoes_scores$Audience_score[i] <- ratings2
     }
     
     print(i)
+    
   }, error = function(e){cat("ERROR :", conditionMessage(e), "\n")})
   
 }
@@ -74,8 +78,11 @@ rotten_tomatoes_scores$Film_ID <- 1001:(1000 + length(aa_films$Film))
 
 aa_films$Film_ID <- 1001:(1000 + length(aa_films$Film))
 
+Films_and_Scores <- merge(aa_films, rotten_tomatoes_scores, by = 'Film_ID')
 
-# Working with Databases and SQL in R------------------------------------------
+
+
+# WORKING WITH DATABASES AND SQL IN R------------------------------------------
 
 library(DBI)
 library(odbc)
@@ -108,7 +115,7 @@ dbGetQuery(filmDB, "SELECT film
                  FROM aa_films 
                  WHERE winner == 1")
 
-dbGetQuery(filmDB, 'SELECT a.Film, r.tomatometer, r.audience_score
+dbGetQuery(filmDB, 'SELECT a.Film, r.Tomatometer, r.Audience_score
                  FROM   aa_films a INNER JOIN film_ratings r ON a.Film_ID =
                         r.Film_ID
                  WHERE  winner == 1')
