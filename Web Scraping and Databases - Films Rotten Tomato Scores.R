@@ -78,6 +78,7 @@ rotten_tomatoes_scores$Film_ID <- 1001:(1000 + length(aa_films$Film))
 
 aa_films$Film_ID <- 1001:(1000 + length(aa_films$Film))
 
+# Merges the two tables into one.
 Films_and_Scores <- merge(aa_films, rotten_tomatoes_scores, by = 'Film_ID')
 
 
